@@ -1,0 +1,67 @@
+from keras.datasets import mnist
+import numpy as np
+
+def Sigmoid(Z):
+    return 1/(1+np.exp(-Z))
+
+def DerSigmoid(Z):
+    return Sigmoid(Z)*(1-Sigmoid(Z))
+    
+def ForProp(w1, w2, b1, b2, X):
+    Z1 = np.dot(w1,X) + b1
+    A1 = Sigmoid(Z1)
+    Z2 = np.dot(w2,A1) + b2
+    A2 = Sigmoid(Z2)
+    return Z1, Z2, A1, A2
+
+def CorrectMatrix(Y):
+    temp = np.zeros((len(Y),10))
+    for i in range(0,len(Y)):
+        temp[i][Y[i]] = 1
+    return temp
+
+def BackProp(A0, Z1, A1, w1, b1, A2, w2 , b2, Y, LearnRate):
+    dCdz2 = A2 - Y
+    w2 -= LearnRate*np.dot(dCdz2,A1.T)
+    b2 -= LearnRate*1*dCdz2
+    dCdz1 = (DerSigmoid(Z1))*np.dot(w2.T,dCdz2)
+    w1 -= LearnRate*np.dot(dCdz1,A0.T)
+    b1 -= LearnRate*1*dCdz1
+    return b1, b2, w1, w2 
+
+(train_X, label), (test_X, label_test) = mnist.load_data()
+A0 = (np.reshape(train_X,(60000,784)))/255
+A0_test = (np.reshape(test_X,(10000,784)))/255
+
+w1 = np.random.rand(28, 784) - 0.5
+b1 = np.random.rand(28, 1) - 0.5
+w2 = np.random.rand(10, 28) - 0.5
+b2 = np.random.rand(10, 1) - 0.5
+
+Iterations = 5
+LearnRate = 0.005
+
+for i in range(0, Iterations):
+    Correct = 0
+    for x, l in zip(A0, CorrectMatrix(label)):
+        x = np.reshape(x, (len(x), 1))
+        l = np.reshape(l, (len(l), 1))
+        Z1, Z2, A1, A2 = ForProp(w1, w2, b1, b2, x)
+
+        if (np.argmax(A2) == np.argmax(l)):
+            Correct += 1
+
+        b1, b2, w1, w2 = BackProp(x, Z1, A1, w1, b1, A2, w2, b2, l, LearnRate)
+    print("Training Accuracy: ", np.round(Correct/len(label)*100,2), "%")
+
+Correct = 0
+
+for i, j in zip(A0_test, CorrectMatrix(label_test)):
+    i = np.reshape(i, (len(i), 1))
+    j = np.reshape(j, (len(j), 1))
+    Z1, Z2, A1, A2 = ForProp(w1,w2,b1,b2,i)
+    
+    if (np.argmax(A2) == np.argmax(j)):
+            Correct += 1
+
+print("Testing Accuracy: ", np.round(Correct/len(label_test)*100,2), "%")
